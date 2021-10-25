@@ -1,0 +1,129 @@
+<html>
+  <head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+      table td.highlighted {
+        background-color: #999;
+      }
+      table td.normal {
+        background-color: rgb(255, 255, 255);
+      }
+      table {
+        border-collapse: collapse;
+      }
+      td {
+        border: 1px solid black;
+        width: 40px;
+        height: 40px;
+        font-size: 30px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <table id="grid"></table>
+  </body>
+  <script>
+    var current_word = "";
+
+    var prevCell = {
+      x: null,
+      y: null,
+    };
+    var currCell = {
+      x: null,
+      y: null,
+    };
+
+    var grid = [
+      ["A", "b", "c", "A", "b", "c", "D", "x"],
+      ["A", "b", "c", "A", "b", "c", "D", "x"],
+      ["A", "b", "c", "A", "b", "c", "D", "x"],
+      ["A", "b", "c", "A", "b", "c", "D", "x"],
+      ["A", "b", "c", "A", "b", "c", "D", "x"],
+      ["A", "b", "c", "A", "b", "c", "D", "x"],
+      ["A", "b", "c", "A", "b", "c", "D", "x"],
+      ["A", "b", "c", "A", "b", "c", "D", "x"],
+    ];
+
+    function setup() {
+      var html = "";
+      for (var i = 0; i < 8; i++) {
+        html += "<tr>";
+        for (var j = 0; j < 8; j++) {
+          html += "<td>" + grid[i][j] + "</td>";
+        }
+        html += "</tr>";
+      }
+      $("#grid").append(html);
+    }
+
+    function undoSelection() {
+      $("#grid")
+        .find(".highlighted")
+        .addClass("normal")
+        .removeClass("highlighted");
+      current_word = "";
+    }
+    function hTest(cCell,pCell){
+      if (cCell.y != pCell.y)
+        return false
+      return true 
+    }
+    function vTest(cCell,pCell){
+      if (cCell.x != pCell.x)
+        return false
+      return true 
+    }
+    $(function () {
+      $("#grid tr").eq(0).find("td").eq(0).css("background-color", "green");
+      var isMouseDown = false;
+      $("#grid td")
+        .mousedown(function () {
+          isMouseDown = true;
+          $(this).addClass("highlighted").removeClass("normal");
+          // console.log($(this).parent().index()) ;
+          //   console.log($(this).index()) ;
+          prevCell.y = $(this).parent().index();
+          prevCell.x = $(this).index();
+          console.log(currCell);
+          console.log(prevCell);
+          current_word += $(this).text();
+          console.log(current_word);
+          return false; // prevent text selection
+        })
+        .mouseover(function () {
+          if (isMouseDown) {
+            if ($(this).attr("class") != "highlighted") {
+              prevCell = {x : currCell.x , y : currCell.y} ;
+              // console.log("prevCell" ,prevCell);
+              currCell.y = $(this).parent().index();
+              currCell.x = $(this).index();
+              if(!hTest(currCell,prevCell) && !vTest(currCell,prevCell) ){
+                undoSelection() ;
+                return
+              }
+              current_word += $(this).text();
+              console.log("currCell" ,currCell);
+             console.log("prevCell" ,prevCell);
+
+
+            
+            }
+
+            $(this).addClass("highlighted").removeClass("normal");
+          }
+        })
+        .mouseup(function () {
+          $(this).addClass("normal").removeClass("highlighted");
+        });
+
+      $(document).mouseup(function () {
+        isMouseDown = false;
+        undoSelection();
+      });
+    });
+
+    setup();
+  </script>
+</html>
