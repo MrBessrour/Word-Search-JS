@@ -5,12 +5,15 @@
       table td.highlighted {
         background-color: #999;
       }
+      table td.found {
+        background-color: rgb(255,0,0);
+      }
       table td.normal {
         background-color: rgb(255, 255, 255);
       }
       table {
         cursor: pointer;
-        border-spacing: 13px;      
+        border-spacing: 13px;
       }
       td {
         border: 1px solid black;
@@ -35,17 +38,21 @@
       x: null,
       y: null,
     };
+    var vector = null;
+    var selection = [] ;
 
     var grid = [
-      ["A", "b", "c", "A", "b", "c", "D", "x"],
-      ["A", "b", "c", "A", "b", "c", "D", "x"],
-      ["A", "b", "c", "A", "b", "c", "D", "x"],
-      ["A", "b", "c", "A", "b", "c", "D", "x"],
-      ["A", "b", "c", "A", "b", "c", "D", "x"],
-      ["A", "b", "c", "A", "b", "c", "D", "x"],
-      ["A", "b", "c", "A", "b", "c", "D", "x"],
+      ["c", "b", "c", "A", "b", "c", "w", "x"],
+      ["A", "a", "c", "A", "b", "c", "o", "x"],
+      ["A", "b", "r", "A", "b", "c", "r", "x"],
+      ["A", "b", "c", "f", "b", "c", "d", "x"],
+      ["A", "b", "c", "l", "b", "c", "D", "x"],
+      ["A", "b", "c", "e", "b", "c", "D", "x"],
+      ["A", "b", "c", "s", "b", "c", "D", "x"],
       ["A", "b", "c", "A", "b", "c", "D", "x"],
     ];
+    var words = ["car" , "self" , "word"]
+    var found = [] ;
 
     function setup() {
       var html = "";
@@ -60,26 +67,69 @@
     }
 
     function undoSelection() {
+      $('#grid').find(".found").removeClass("normal").removeClass("highlighted") ;
       $("#grid")
         .find(".highlighted")
         .addClass("normal")
         .removeClass("highlighted");
+     
       current_word = "";
       dir = null;
+      selection = [] ;
+      vector = null ;
     }
+    
     function hTest(cCell, pCell) {
       if (cCell.y != pCell.y) return false;
       return true;
     }
+    
     function vTest(cCell, pCell) {
       if (cCell.x != pCell.x) return false;
       return true;
     }
+    
     function dTest(cCell, pCell) {
-      if (Math.abs(cCell.x - pCell.x) != Math.abs(cCell.y - pCell.y)) return false;
-      return true;
+      if (Math.abs(cCell.x - pCell.x) != Math.abs(cCell.y - pCell.y))
+        return false;
+
+      vector = {
+        x: cCell.x - pCell.x,
+        y: cCell.y - pCell.y,
+      };
+      return vector;
     }
 
+    function diagTest(cCell, pCell , vector) {
+      if (Math.abs(cCell.x - pCell.x) != Math.abs(cCell.y - pCell.y))
+        return false;
+      
+      if(cCell.x - pCell.x != vector.x){
+        return false
+      }
+
+      if(cCell.y - pCell.y != vector.y){
+        return false
+      }
+
+      return true;
+    }
+    function wordFound(){
+      selection.forEach(index => {
+        $("#grid tr").eq(index.y).find("td").eq(index.x).addClass("found").removeClass("normal") ;
+      });
+    }
+    
+    function checkWord(word){
+      if(words.indexOf(word) > -1) {
+        wordFound() ;
+        found.push(word) ;
+        wordFound() ;
+        return true ;
+      }
+      return false ;
+    }
+    
     $(function () {
       var isMouseDown = false;
       $("#grid td")
@@ -89,6 +139,7 @@
 
           prevCell.y = $(this).parent().index();
           prevCell.x = $(this).index();
+          selection.push({x : prevCell.x , y : prevCell.y}) ;
 
           currCell.y = $(this).parent().index();
           currCell.x = $(this).index();
@@ -104,13 +155,16 @@
 
               currCell.y = $(this).parent().index();
               currCell.x = $(this).index();
+              selection.push({x : currCell.x , y : currCell.y}) ;
+
 
               if (dir == null) {
                 if (hTest(currCell, prevCell)) dir = 1;
                 if (vTest(currCell, prevCell)) dir = 0;
-                if (dTest(currCell, prevCell)) dir = 2;
-
-                console.log(dir);
+                vector = dTest(currCell, prevCell);
+                if (vector != false) {
+                  dir = 2;
+                }
               }
               switch (dir) {
                 case 0:
@@ -125,12 +179,18 @@
                   }
                   break;
                 case 2:
-                  if (!dTest(currCell, prevCell)) {
+                  if (!diagTest(currCell, prevCell , vector)) {
                     undoSelection();
                   }
                   break;
+                default:
+                  break;
               }
               current_word += $(this).text();
+              checkWord(current_word) ;
+              console.log(current_word) ;
+
+              // console.log(current_word) ;
             }
 
             $(this).addClass("highlighted").removeClass("normal");
