@@ -9,7 +9,8 @@
         background-color: rgb(255, 255, 255);
       }
       table {
-        border-collapse: collapse;
+        cursor: pointer;
+        border-spacing: 13px;      
       }
       td {
         border: 1px solid black;
@@ -25,7 +26,7 @@
   </body>
   <script>
     var current_word = "";
-
+    var dir = null;
     var prevCell = {
       x: null,
       y: null,
@@ -64,58 +65,76 @@
         .addClass("normal")
         .removeClass("highlighted");
       current_word = "";
+      dir = null;
     }
-    function hTest(cCell,pCell){
-      if (cCell.y != pCell.y)
-        return false
-      return true 
+    function hTest(cCell, pCell) {
+      if (cCell.y != pCell.y) return false;
+      return true;
     }
-    function vTest(cCell,pCell){
-      if (cCell.x != pCell.x)
-        return false
-      return true 
+    function vTest(cCell, pCell) {
+      if (cCell.x != pCell.x) return false;
+      return true;
     }
+    function dTest(cCell, pCell) {
+      if (Math.abs(cCell.x - pCell.x) != Math.abs(cCell.y - pCell.y)) return false;
+      return true;
+    }
+
     $(function () {
-      $("#grid tr").eq(0).find("td").eq(0).css("background-color", "green");
       var isMouseDown = false;
       $("#grid td")
         .mousedown(function () {
           isMouseDown = true;
           $(this).addClass("highlighted").removeClass("normal");
-          // console.log($(this).parent().index()) ;
-          //   console.log($(this).index()) ;
+
           prevCell.y = $(this).parent().index();
           prevCell.x = $(this).index();
-          console.log(currCell);
-          console.log(prevCell);
+
+          currCell.y = $(this).parent().index();
+          currCell.x = $(this).index();
+
           current_word += $(this).text();
-          console.log(current_word);
+
           return false; // prevent text selection
         })
         .mouseover(function () {
           if (isMouseDown) {
             if ($(this).attr("class") != "highlighted") {
-              prevCell = {x : currCell.x , y : currCell.y} ;
-              // console.log("prevCell" ,prevCell);
+              prevCell = { x: currCell.x, y: currCell.y };
+
               currCell.y = $(this).parent().index();
               currCell.x = $(this).index();
-              if(!hTest(currCell,prevCell) && !vTest(currCell,prevCell) ){
-                undoSelection() ;
-                return
+
+              if (dir == null) {
+                if (hTest(currCell, prevCell)) dir = 1;
+                if (vTest(currCell, prevCell)) dir = 0;
+                if (dTest(currCell, prevCell)) dir = 2;
+
+                console.log(dir);
+              }
+              switch (dir) {
+                case 0:
+                  if (!vTest(currCell, prevCell)) {
+                    undoSelection();
+                  }
+                  break;
+
+                case 1:
+                  if (!hTest(currCell, prevCell)) {
+                    undoSelection();
+                  }
+                  break;
+                case 2:
+                  if (!dTest(currCell, prevCell)) {
+                    undoSelection();
+                  }
+                  break;
               }
               current_word += $(this).text();
-              console.log("currCell" ,currCell);
-             console.log("prevCell" ,prevCell);
-
-
-            
             }
 
             $(this).addClass("highlighted").removeClass("normal");
           }
-        })
-        .mouseup(function () {
-          $(this).addClass("normal").removeClass("highlighted");
         });
 
       $(document).mouseup(function () {
