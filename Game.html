@@ -1,21 +1,40 @@
 <html>
   <head>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css"
+    />
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <style>
       table td.highlighted {
         background-color: #999;
       }
       table td.found {
-        background-color: rgb(255,0,0);
+        background-color: rgb(255, 0, 0);
       }
       table td.normal {
         background-color: rgb(255, 255, 255);
       }
-      table {
+      p.timer {
+        font-size: 30px;
+      }
+      td.line {
+        text-decoration: line-through;
+      }
+      table.grid {
         cursor: pointer;
+        border-collapse: separate;
         border-spacing: 13px;
       }
-      td {
+      table.words {
+        cursor: pointer;
+        border-collapse: separate;
+        border-spacing: 10px;
+
+        font-size: 30px;
+        text-align: center;
+      }
+      table.grid td {
         border: 1px solid black;
         width: 40px;
         height: 40px;
@@ -25,9 +44,41 @@
     </style>
   </head>
   <body>
-    <table id="grid"></table>
+    <div class="row" style="padding: 2%">
+      <table id="grid" class="grid"></table>
+      <p id="timer" class="timer">Timer</p>
+    </div>
+    <table id="words" class="words" style="padding-left: 2%"></table>
   </body>
   <script>
+    const arabic_alpha = [
+      "ا",
+      "ب",
+      "ت",
+      "ث",
+      "ج",
+      "ح",
+      "خ",
+      "د",
+      "ذ",
+      "ر",
+      "ز",
+      "ص",
+      "ض",
+      "ط",
+      "ظ",
+      "ع",
+      "غ",
+      "ف",
+      "ق",
+      "ک",
+      "ل",
+      "م",
+      "ن",
+      "و",
+      "ه",
+      "ی",
+    ];
     var current_word = "";
     var dir = null;
     var prevCell = {
@@ -39,20 +90,28 @@
       y: null,
     };
     var vector = null;
-    var selection = [] ;
+    var selection = [];
 
     var grid = [
-      ["c", "b", "c", "A", "b", "c", "w", "x"],
-      ["A", "a", "c", "A", "b", "c", "o", "x"],
-      ["A", "b", "r", "A", "b", "c", "r", "x"],
-      ["A", "b", "c", "f", "b", "c", "d", "x"],
-      ["A", "b", "c", "l", "b", "c", "D", "x"],
-      ["A", "b", "c", "e", "b", "c", "D", "x"],
-      ["A", "b", "c", "s", "b", "c", "D", "x"],
-      ["A", "b", "c", "A", "b", "c", "D", "x"],
+      ["", "", "", "ة", "ن", "ي", "ف", "س"],
+      ["", "", "", "", "", "", "", ""],
+      ["", "", "", "ة", "ر", "ئ", "ا", "ط"],
+      ["ة", "", "ة", "ت", "خ", "ي", "", ""],
+      ["ج", "", "", "ب", "و", "", "", ""],
+      ["ا", "", "", "", "ر", "", "", ""],
+      ["ر", "", "", "", "ا", "ع", "", ""],
+      ["د", "", "", "", "ص", "", "", ""],
     ];
-    var words = ["car" , "self" , "word"]
-    var found = [] ;
+    var words = ["عربة", "سفينة", "طائرة", "صاروخ", "دراجة", "يخت"];
+    var found = [];
+
+    function secondsToHMS(s) {
+      var h = Math.floor(s / 3600);
+      s -= h * 3600;
+      var m = Math.floor(s / 60);
+      s -= m * 60;
+      return h + ":" + (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+    }
 
     function setup() {
       var html = "";
@@ -64,31 +123,66 @@
         html += "</tr>";
       }
       $("#grid").append(html);
+
+      var sec = 0;
+      setInterval(function () {
+        sec++;
+        $("#timer").text(secondsToHMS(sec));
+      }, 1000);
+    }
+
+    function setupWords() {
+      var html = "";
+      html += "<tr>";
+      for (var i = 0; i < words.length / 2; i++) {
+        html += "<td id = " + i + ">" + words[i] + "</td>";
+      }
+      html += "</tr><tr>";
+
+      for (var i = words.length / 2; i < words.length; i++) {
+        html += "<td id = " + i + ">" + words[i] + "</td>";
+      }
+
+      $("#words").append(html);
+
+      $("#grid tr").each(function () {
+        $("td", this).each(function () {
+         // console.log($(this).text());
+          var randChar =
+            arabic_alpha[Math.floor(Math.random() * arabic_alpha.length)];
+          if ($(this).text() == "") {
+            $(this).text(randChar);
+          }
+        });
+      });
     }
 
     function undoSelection() {
-      $('#grid').find(".found").removeClass("normal").removeClass("highlighted") ;
+      $("#grid")
+        .find(".found")
+        .removeClass("normal")
+        .removeClass("highlighted");
       $("#grid")
         .find(".highlighted")
         .addClass("normal")
         .removeClass("highlighted");
-     
+
       current_word = "";
       dir = null;
-      selection = [] ;
-      vector = null ;
+      selection = [];
+      vector = null;
     }
-    
+
     function hTest(cCell, pCell) {
       if (cCell.y != pCell.y) return false;
       return true;
     }
-    
+
     function vTest(cCell, pCell) {
       if (cCell.x != pCell.x) return false;
       return true;
     }
-    
+
     function dTest(cCell, pCell) {
       if (Math.abs(cCell.x - pCell.x) != Math.abs(cCell.y - pCell.y))
         return false;
@@ -100,36 +194,42 @@
       return vector;
     }
 
-    function diagTest(cCell, pCell , vector) {
+    function diagTest(cCell, pCell, vector) {
       if (Math.abs(cCell.x - pCell.x) != Math.abs(cCell.y - pCell.y))
         return false;
-      
-      if(cCell.x - pCell.x != vector.x){
-        return false
+
+      if (cCell.x - pCell.x != vector.x) {
+        return false;
       }
 
-      if(cCell.y - pCell.y != vector.y){
-        return false
+      if (cCell.y - pCell.y != vector.y) {
+        return false;
       }
 
       return true;
     }
-    function wordFound(){
-      selection.forEach(index => {
-        $("#grid tr").eq(index.y).find("td").eq(index.x).addClass("found").removeClass("normal") ;
+    function wordFound(i) {
+      console.log(i) ;
+      $("#"+i).addClass("line") ;
+      selection.forEach((index) => {
+        $("#grid tr")
+          .eq(index.y)
+          .find("td")
+          .eq(index.x)
+          .addClass("found")
+          .removeClass("normal");
       });
     }
-    
-    function checkWord(word){
-      if(words.indexOf(word) > -1) {
-        wordFound() ;
-        found.push(word) ;
-        wordFound() ;
-        return true ;
+
+    function checkWord(word) {
+      if (words.indexOf(word) > -1) {
+        wordFound(words.indexOf(word));
+        found.push(word);
+        return true;
       }
-      return false ;
+      return false;
     }
-    
+
     $(function () {
       var isMouseDown = false;
       $("#grid td")
@@ -139,7 +239,7 @@
 
           prevCell.y = $(this).parent().index();
           prevCell.x = $(this).index();
-          selection.push({x : prevCell.x , y : prevCell.y}) ;
+          selection.push({ x: prevCell.x, y: prevCell.y });
 
           currCell.y = $(this).parent().index();
           currCell.x = $(this).index();
@@ -155,8 +255,7 @@
 
               currCell.y = $(this).parent().index();
               currCell.x = $(this).index();
-              selection.push({x : currCell.x , y : currCell.y}) ;
-
+              selection.push({ x: currCell.x, y: currCell.y });
 
               if (dir == null) {
                 if (hTest(currCell, prevCell)) dir = 1;
@@ -179,7 +278,7 @@
                   }
                   break;
                 case 2:
-                  if (!diagTest(currCell, prevCell , vector)) {
+                  if (!diagTest(currCell, prevCell, vector)) {
                     undoSelection();
                   }
                   break;
@@ -187,8 +286,8 @@
                   break;
               }
               current_word += $(this).text();
-              checkWord(current_word) ;
-              console.log(current_word) ;
+              checkWord(current_word);
+              //console.log(current_word);
 
               // console.log(current_word) ;
             }
@@ -204,5 +303,6 @@
     });
 
     setup();
+    setupWords();
   </script>
 </html>
