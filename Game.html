@@ -25,6 +25,15 @@
       p.timer {
         font-size: 30px;
       }
+      label.win {
+        color: rgb(108, 122, 137);
+        font-size: 20px;
+      }
+      label.gold {
+        color: rgb(247, 202, 24);
+        font-size: 20px;
+        font-weight: bold;
+      }
       td.line {
         text-decoration: line-through;
       }
@@ -53,12 +62,40 @@
     </style>
   </head>
   <body>
-    <div class="d-flex flex-row-reverse" class="" style="padding: 2%">
-      <p id="timer" class="timer">Timer</p>
-      <table id="grid" class="grid"></table>
+    <div id="game">
+      <div class="d-flex flex-row-reverse" class="" style="padding: 2%">
+        <table id="grid" class="grid"></table>
+        <p id="timer" class="timer">0:00:00</p>
+      </div>
+      <div class="d-flex flex-row-reverse">
+        <table id="words" class="words" style="padding-left: 2%"></table>
+      </div>
     </div>
-    <div class="d-flex flex-row-reverse">
-      <table id="words" class="words" style="padding-left: 2%"></table>
+    <div id="finish">
+      <div class="d-flex align-items-center flex-column">
+        <div class="p-2"><img src="Bird.png" alt="" /></div>
+        <div class="p-2">
+          <label style="color: rgb(108, 122, 137); font-size: 60px"
+            >Nice Job</label
+          >
+        </div>
+        <div class="p-2">
+          <label class="win">You just found</label>
+          <label class="gold" id="wordsfound"></label>
+          <label class="win">words in</label>
+          <label class="gold" id="wordstime"></label>
+        </div>
+        <div class="p-2">
+          <button
+            type="button"
+            id="start"
+            class="btn btn-success"
+            style="font-size: 25px"
+          >
+            Start Over
+          </button>
+        </div>
+      </div>
     </div>
   </body>
   <script>
@@ -98,6 +135,7 @@
 
     var current_word = "";
     var dir = null;
+    var time;
 
     var prevCell = {
       x: null,
@@ -115,6 +153,7 @@
     //words length must be <= the grid size
     var words = ["سفينة", "دراجة", "طائرة", "صاروخ", "يخت", "قهوة", "حاسوب"];
 
+    //the found words will go here
     var found = [];
 
     //this function takes seconds as arguments and return Time HH:MM:SS
@@ -246,6 +285,7 @@
       var sec = 0;
       setInterval(function () {
         sec++;
+        time = secondsToHMS(sec);
         $("#timer").text(secondsToHMS(sec));
       }, 1000);
     }
@@ -359,13 +399,123 @@
     function checkWord(word) {
       if (words.indexOf(word) > -1) {
         wordFound(words.indexOf(word));
-        found.push(word);
+        if (found.indexOf(word) == -1) found.push(word);
+
+        if (found.length >= words.length) {
+          $("#game").hide(1000);
+          $("#wordsfound").text(words.length);
+          $("#wordstime").text(time);
+          $("#finish").show();
+        }
         return true;
       }
       return false;
     }
+    //this function will setup every thing
+    function init() {
+      //setup everything
+      populateGrid();
+      setupGrid();
+      setup();
+      setupWords();
+      //disabel this function if you want to see the words only with no random letters
+      randomLetters();
+      //start listening for the touch events
+      TouchSelect();
+      //hide the finish div
+      $("#finish").hide();
+    }
 
+    //this function will find a td inside the grid by x y
+    function findCell(x, y) {
+      $("#grid td").each(function () {
+        // check if is inside boundaries
+        if (
+          !(
+            x <= $(this).offset().left ||
+            x >= $(this).offset().left + $(this).outerWidth() ||
+            y <= $(this).offset().top ||
+            y >= $(this).offset().top + $(this).outerHeight()
+          )
+        ) {
+          if ($(this).attr("class") != "highlighted") {
+            prevCell = { x: currCell.x, y: currCell.y };
+
+            currCell.y = $(this).parent().index();
+            currCell.x = $(this).index();
+            selection.push({ x: currCell.x, y: currCell.y });
+
+            if (dir == null) {
+              if (hTest(currCell, prevCell)) dir = 1;
+              if (vTest(currCell, prevCell)) dir = 0;
+              vector = dTest(currCell, prevCell);
+              if (vector != false) {
+                dir = 2;
+              }
+            }
+            switch (dir) {
+              case 0:
+                if (!vTest(currCell, prevCell)) {
+                  undoSelection();
+                }
+                break;
+
+              case 1:
+                if (!hTest(currCell, prevCell)) {
+                  undoSelection();
+                }
+                break;
+              case 2:
+                if (!diagTest(currCell, prevCell, vector)) {
+                  undoSelection();
+                }
+                break;
+              default:
+                break;
+            }
+            current_word += $(this).text();
+            checkWord(current_word);
+          }
+
+          $(this).addClass("highlighted").removeClass("normal");
+        }
+      });
+    }
     //check if click and drag is happing in the tabel cells
+    function TouchSelect() {
+      var isMouseDown = false;
+      $("#grid td").on("touchstart", function (ev) {
+        ev.preventDefault();
+        isMouseDown = true;
+        $(this).addClass("highlighted").removeClass("normal");
+
+        prevCell.y = $(this).parent().index();
+        prevCell.x = $(this).index();
+        selection.push({ x: prevCell.x, y: prevCell.y });
+
+        currCell.y = $(this).parent().index();
+        currCell.x = $(this).index();
+
+        current_word += $(this).text();
+
+        return false;
+      });
+
+      $("#grid td").on("touchmove", function (ev) {
+        if (isMouseDown) {
+          var touch = ev.originalEvent.touches[0];
+          //console.log(touch.clientX, touch.clientY);
+
+          findCell(touch.clientX, touch.clientY);
+        }
+      });
+
+      $(document).on("touchend", function (e) {
+        isMouseDown = false;
+        undoSelection();
+      });
+    }
+
     $(function () {
       var isMouseDown = false;
       $("#grid td")
@@ -433,19 +583,14 @@
         isMouseDown = false;
         undoSelection();
       });
-
-      $(document).on("touchend", function (e) {
-        isMouseDown = false;
-        undoSelection();
-      });
     });
 
-    //setup everything
-    populateGrid();
-    setupGrid();
-    setup();
-    setupWords();
-    //disabel this function if you want to see the words only with no random letters
-    randomLetters();
+    $("#start").on("click", function () {
+      location.reload();
+    });
+
+    //set up everything
+    init();
+    
   </script>
 </html>
