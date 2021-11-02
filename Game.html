@@ -10,7 +10,7 @@
 
       @font-face {
         font-family: "AdobeArabic";
-        src: URL("AdobeArabic.ttf") format("truetype");
+        src: URL("./assets/AdobeArabic.ttf") format("truetype");
       }
 
       table td.highlighted {
@@ -73,7 +73,7 @@
     </div>
     <div id="finish">
       <div class="d-flex align-items-center flex-column">
-        <div class="p-2"><img src="Bird.png" alt="" /></div>
+        <div class="p-2"><img src="./assets/Bird.png" alt="" /></div>
         <div class="p-2">
           <label style="color: rgb(108, 122, 137); font-size: 60px"
             >Nice Job</label
@@ -228,7 +228,7 @@
             var character_at_new_position =
               grid[new_position_x][new_position_y];
             if (character_at_new_position != "") {
-              if (character_at_new_position == character) {
+              if (character_at_new_position == character && i != 0) {
                 continue;
               } else {
                 failed = true;
@@ -325,6 +325,7 @@
     //this would be trigered when the user releas the mouse button
     //or when he select words in random orintation
     function undoSelection() {
+      console.log("undo") ;
       $("#grid")
         .find(".found")
         .removeClass("normal")
@@ -399,6 +400,7 @@
     function checkWord(word) {
       if (words.indexOf(word) > -1) {
         wordFound(words.indexOf(word));
+        SuccessAudio() ;
         if (found.indexOf(word) == -1) found.push(word);
 
         if (found.length >= words.length) {
@@ -418,7 +420,7 @@
       setupGrid();
       setup();
       setupWords();
-      //disabel this function if you want to see the words only with no random letters
+      //disable this function if you want to see the words only with no random letters
       randomLetters();
       //start listening for the touch events
       TouchSelect();
@@ -426,6 +428,11 @@
       $("#finish").hide();
     }
 
+    //this will play the success sound effect
+    function SuccessAudio(){
+      const audio = new Audio("./assets/success-sound-effect.mp3" );
+      audio.play();
+    }
     //this function will find a td inside the grid by x y
     function findCell(x, y) {
       $("#grid td").each(function () {
@@ -438,7 +445,8 @@
             y >= $(this).offset().top + $(this).outerHeight()
           )
         ) {
-          if ($(this).attr("class") != "highlighted") {
+          // console.log($(this).parent().index(),$(this).index()) ;
+          if (!$(this).hasClass("highlighted")) {
             prevCell = { x: currCell.x, y: currCell.y };
 
             currCell.y = $(this).parent().index();
@@ -485,7 +493,7 @@
     function TouchSelect() {
       var isMouseDown = false;
       $("#grid td").on("touchstart", function (ev) {
-        ev.preventDefault();
+        ev.preventDefault(); //prevent text selection 
         isMouseDown = true;
         $(this).addClass("highlighted").removeClass("normal");
 
@@ -504,13 +512,13 @@
       $("#grid td").on("touchmove", function (ev) {
         if (isMouseDown) {
           var touch = ev.originalEvent.touches[0];
-          //console.log(touch.clientX, touch.clientY);
+          // console.log(touch.clientX, touch.clientY);
 
           findCell(touch.clientX, touch.clientY);
         }
       });
 
-      $(document).on("touchend", function (e) {
+      $("#grid td").on("touchend", function (e) {
         isMouseDown = false;
         undoSelection();
       });
