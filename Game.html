@@ -34,7 +34,7 @@
         font-size: 20px;
         font-weight: bold;
       }
-      td.line {
+      .line {
         text-decoration: line-through;
       }
       table.grid {
@@ -43,7 +43,7 @@
         border-collapse: separate;
         border-spacing: 13px;
       }
-      table.words {
+      .words {
         font-family: "AdobeArabic";
         cursor: pointer;
         border-collapse: separate;
@@ -67,8 +67,15 @@
         <table id="grid" class="grid"></table>
         <p id="timer" class="timer">0:00:00</p>
       </div>
+
       <div class="d-flex flex-row-reverse">
-        <table id="words" class="words" style="padding-left: 2%"></table>
+        <div style="width: 40%">
+          <div
+            id="words"
+            class="d-flex flex-wrap words"
+            style="padding-left: 2%"
+          ></div>
+        </div>
       </div>
     </div>
     <div id="finish">
@@ -184,89 +191,107 @@
     //This function Setup the Grid array with words from words array
     //words would be placed in 3 diffrent orientation Vertical Horizatol or diagonal
     function setupGrid() {
-      words.forEach((word) => {
-        var placed = false;
-        var step_x = 0;
-        var step_y = 0;
-        var failcounter = 0;
+      words
+        .slice()
+        .reverse()
+        .forEach((word, index, object) => {
+          var placed = false;
+          var step_x = 0;
+          var step_y = 0;
+          var failcounter = 0;
+          var orientationCounter = 0;
 
-        while (!placed) {
-          var orientation =
-            orientations[Math.floor(Math.random() * orientations.length)];
-          if (orientation == "rightleft") {
-            step_x = 1;
-            step_y = 0;
-          }
-          if (orientation == "updown") {
-            step_x = 0;
-            step_y = -1;
-          }
-          if (orientation == "diagonalup") {
-            step_x = 1;
-            step_y = -1;
-          }
-          if (orientation == "diagonaldown") {
-            step_x = 1;
-            step_y = 1;
-          }
-
-          var x_position = randomNumber(0, grid_size);
-          var y_position = randomNumber(0, grid_size);
-
-          var ending_x = x_position + word.length * step_x;
-          var ending_y = y_position + word.length * step_y;
-
-          if (ending_x < 0 || ending_x >= grid_size) continue;
-          if (ending_y < 0 || ending_y >= grid_size) continue;
-
-          var failed = false;
-
-          for (i = 0; i < word.length; i++) {
-            var character = word[i];
-            var new_position_x = x_position + i * step_x;
-            var new_position_y = y_position + i * step_y;
-            var character_at_new_position =
-              grid[new_position_x][new_position_y];
-            if (character_at_new_position != "") {
-              if (character_at_new_position == character && i != 0) {
-                continue;
-              } else {
-                failed = true;
-                failcounter++;
-                //try grid_sixe^2 timess to finde a good spot || if not remove the word
-                if (failcounter >= grid_size * grid_size) {
-                  var wordIndex = words.indexOf(word);
-                  words.splice(wordIndex, 1);
-                  placed = true;
-                  break;
-                }
-                continue;
-              }
+          while (!placed) {
+            var orientation =
+              orientations[Math.floor(Math.random() * orientations.length)];
+            if (orientation == "rightleft") {
+              step_x = 1;
+              step_y = 0;
             }
-          }
+            if (orientation == "updown") {
+              step_x = 0;
+              step_y = -1;
+            }
+            if (orientation == "diagonalup") {
+              step_x = 1;
+              step_y = -1;
+            }
+            if (orientation == "diagonaldown") {
+              step_x = 1;
+              step_y = 1;
+            }
 
-          //if not failed start placing the letters
-          if (!failed) {
-            for (i = 0; i < word.length; i++) {
+            var x_position = randomNumber(0, grid_size);
+            var y_position = randomNumber(0, grid_size);
+
+            var ending_x = x_position + word.length * step_x;
+            var ending_y = y_position + word.length * step_y;
+
+            if (orientationCounter >= grid_size * grid_size) {
+              var WordIndex = words.indexOf(word);
+              words.splice(WordIndex, 1);
+              placed = true;
+              break;
+            }
+
+            if (ending_x < 0 || ending_x >= grid_size) {
+              orientationCounter++;
+              continue;
+            }
+            if (ending_y < 0 || ending_y >= grid_size) {
+              orientationCounter++;
+              continue;
+            }
+
+            var failed = false;
+
+            for (var i = 0; i < word.length; i++) {
               var character = word[i];
               var new_position_x = x_position + i * step_x;
               var new_position_y = y_position + i * step_y;
-              grid[new_position_x][new_position_y] = character;
-
-              for (row = 0; row < grid_size; row++) {
-                for (column = 0; column < grid_size; column++) {
-                  if (
-                    grid[row][column] == grid[new_position_x][new_position_y]
-                  ) {
-                    grid[row][column] = grid[new_position_x][new_position_y];
+              var character_at_new_position =
+                grid[new_position_x][new_position_y];
+              if (character_at_new_position != "") {
+                if (character_at_new_position == character && i != 0) {
+                  continue;
+                } else {
+                  failed = true;
+                  failcounter++;
+                  //try grid_size^2 timess to finde a good spot || if not remove the word
+                  if (failcounter >= grid_size * grid_size) {
+                    var WordIndex = words.indexOf(word);
+                    words.splice(WordIndex, 1);
+                    placed = true;
+                    break;
                   }
+                  break;
                 }
               }
             }
-            placed = true;
+
+            //if not failed start placing the letters
+            if (!failed) {
+              for (var i = 0; i < word.length; i++) {
+                var character = word[i];
+                var new_position_x = x_position + i * step_x;
+                var new_position_y = y_position + i * step_y;
+                grid[new_position_x][new_position_y] = character;
+
+                for (row = 0; row < grid_size; row++) {
+                  for (column = 0; column < grid_size; column++) {
+                    if (
+                      grid[row][column] == grid[new_position_x][new_position_y]
+                    ) {
+                      grid[row][column] = grid[new_position_x][new_position_y];
+                    }
+                  }
+                }
+              }
+              placed = true;
+            }
           }
-        }
-      });
+        });
+      // words = Words_array ;
     }
 
     //setup the HTML tabel with the letters form the grid array
@@ -290,22 +315,11 @@
       }, 1000);
     }
 
-    //setup the words beneath the Tabel
     function setupWords() {
       var html = "";
-      html += "<tr>";
-      for (var i = 0; i < words.length / 2; i++) {
-        html += "<td id = " + i + ">" + words[i] + "</td>";
+      for (var i = 0; i < words.length; i++) {
+        html += '<div class = "p-2" id = ' + i + ">" + words[i] + "</div>";
       }
-      html += "</tr><tr>";
-
-      var startpoint =
-        (words.length / 2) % 2 == 0 ? words.length / 2 : words.length / 2 + 1;
-      for (var i = startpoint; i < words.length; i++) {
-        html +=
-          "<td id = " + Math.floor(i) + ">" + words[Math.floor(i)] + "</td>";
-      }
-
       $("#words").append(html);
     }
 
@@ -325,7 +339,6 @@
     //this would be trigered when the user releas the mouse button
     //or when he select words in random orintation
     function undoSelection() {
-      console.log("undo") ;
       $("#grid")
         .find(".found")
         .removeClass("normal")
@@ -400,7 +413,7 @@
     function checkWord(word) {
       if (words.indexOf(word) > -1) {
         wordFound(words.indexOf(word));
-        SuccessAudio() ;
+        SuccessAudio();
         if (found.indexOf(word) == -1) found.push(word);
 
         if (found.length >= words.length) {
@@ -429,8 +442,8 @@
     }
 
     //this will play the success sound effect
-    function SuccessAudio(){
-      const audio = new Audio("./assets/success-sound-effect.mp3" );
+    function SuccessAudio() {
+      const audio = new Audio("./assets/success-sound-effect.mp3");
       audio.play();
     }
     //this function will find a td inside the grid by x y
@@ -445,7 +458,6 @@
             y >= $(this).offset().top + $(this).outerHeight()
           )
         ) {
-          // console.log($(this).parent().index(),$(this).index()) ;
           if (!$(this).hasClass("highlighted")) {
             prevCell = { x: currCell.x, y: currCell.y };
 
@@ -493,7 +505,7 @@
     function TouchSelect() {
       var isMouseDown = false;
       $("#grid td").on("touchstart", function (ev) {
-        ev.preventDefault(); //prevent text selection 
+        ev.preventDefault(); //prevent text selection
         isMouseDown = true;
         $(this).addClass("highlighted").removeClass("normal");
 
@@ -512,8 +524,6 @@
       $("#grid td").on("touchmove", function (ev) {
         if (isMouseDown) {
           var touch = ev.originalEvent.touches[0];
-          // console.log(touch.clientX, touch.clientY);
-
           findCell(touch.clientX, touch.clientY);
         }
       });
@@ -599,6 +609,5 @@
 
     //set up everything
     init();
-    
   </script>
 </html>
